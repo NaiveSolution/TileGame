@@ -2,7 +2,6 @@ import pygame as pg
 import settings
 from player import Player
 
-
 def main():
 
     # Setup the window

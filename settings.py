@@ -1,8 +1,16 @@
+import os
+
+# Setup asset folders
+game_folder = os.path.dirname(__file__)
+img_folder = os.path.join(game_folder, "img")
 
 # Some game constants
-HEIGHT = 600
-WIDTH = 800
-FPS = 30
+TILE_SIZE = 32
+NUMBER_OF_TILES = 17 # TODO: set the starting tile center according to an odd or even number
+HEIGHT = TILE_SIZE * NUMBER_OF_TILES
+WIDTH = TILE_SIZE * NUMBER_OF_TILES
+FPS = 20
+TICKER_TIME = int(FPS * 0.15)
 
 # Useful colours
 WHITE = (255, 255, 255)
