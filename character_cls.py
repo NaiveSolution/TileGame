@@ -35,7 +35,8 @@ class Player(Character):
         self.grid_position_x = x
         self.grid_position_y = y
         if not self.check_valid_position:
-            raise Exception(f'Tried to create a tile outside of the grid at: [{self.grid_position_x}][{self.grid_position_y}]')
+            raise Exception(f'Tried to create the player outside of the grid at: [{self.grid_position_x}][{self.grid_position_y}]')
+        self.move(self.grid_position_x, self.grid_position_y)
 
     def update(self):
         # Count down a move ticker so that the sprite can only move as a fraction of

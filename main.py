@@ -1,24 +1,10 @@
 import pygame as pg
 import settings
 from character_cls import Player
-from terrain_cls import NormalTerrain, ImpassableTerrain
+from gameworld_cls import GameWorld
 
-
-def set_map_block(row, col, file_name, terrain_type):
-    ''' Create a terrain block for a position on the map grid.
-        Use terrain_type = 0 for Terrain() or terrain_type = 1 for ImpassableTerrain().
-    '''
-    if terrain_type == 0:
-        terrain_block = NormalTerrain(row, col, file_name)
-    elif terrain_type == 1:
-        terrain_block = ImpassableTerrain(row, col, file_name)
-    else:
-        print('Not a terrain_type')
-        return
-    return terrain_block
 
 def main():
-    flag = True
 
     # Setup the window
     pg.display.set_caption("Tile Game")
@@ -29,11 +15,16 @@ def main():
 
     running = True
 
+    # Create the controller for displaying maps n shit
+    game_world = GameWorld()
+
+    current_map = game_world.return_current_map()
+
     # Create the sprites
-    player = Player(5, 5) # Create a player at some coords
+    player = Player(0, 0) # Create a player at some coords
     all_sprites = pg.sprite.LayeredUpdates()
-    all_sprites.add(player)
-                
+    all_sprites.add(player, current_map)
+    all_sprites.move_to_front(player)
 
     # Main game loop
     while running:
@@ -41,19 +32,11 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
-        # For testing of set_map_block
-        if flag:
-            if player.get_grid_coords()[0] == 6 and player.get_grid_coords()[1] == 6:
-                terrain_block_list = set_map_block(0, 0, 'terrain_zigzag.png')
-                all_sprites.add(terrain_block_list)
-
-                all_sprites.move_to_front(player)
-                flag = False
         # Update game state
         all_sprites.update()
         
         # Draw / render on screen
-        screen.fill(settings.BLUE)
+        screen.fill(settings.WHITE)
         all_sprites.draw(screen)
 
         # After drawing everything flip the display
