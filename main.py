@@ -18,14 +18,6 @@ def main():
     # Create the controller for displaying maps n shit
     game_world = GameWorld()
 
-    current_map = game_world.return_current_map()
-
-    # Create the sprites
-    player = Player(0, 0) # Create a player at some coords
-    all_sprites = pg.sprite.LayeredUpdates()
-    all_sprites.add(player, current_map)
-    all_sprites.move_to_front(player)
-
     # Main game loop
     while running:
         clock.tick(settings.FPS)
@@ -33,18 +25,18 @@ def main():
             if event.type == pg.QUIT:
                 running = False
         # Update game state
-        all_sprites.update()
+        game_world.all_sprites.update()
         
         # Draw / render on screen
         screen.fill(settings.WHITE)
-        all_sprites.draw(screen)
+        game_world.all_sprites.draw(screen)
 
         # After drawing everything flip the display
         pg.display.flip()
-        x, y = player.get_grid_coords()
+        # x, y = game_world.player.get_grid_coords()
+        game_world.update_surrounds()
         
-
     pg.quit()
-# Game loop
+
 if __name__ == "__main__":
     main()

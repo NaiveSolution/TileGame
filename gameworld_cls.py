@@ -1,9 +1,10 @@
-from generate_map import check_valid_position
 import settings
 from terrain_cls import NormalTerrain, ImpassableTerrain
 from tile_cls import TileBlock
 import json
 import os
+from character_cls import Player
+from pygame.sprite import LayeredUpdates
 
 class GameWorld:
     ''' This class keeps track of the state of the game world which includes the current
@@ -17,10 +18,22 @@ class GameWorld:
 
     def __init__(self):
         # Initialise the starting position of the player at (1, 1)
-        self.current_world_row = 1
-        self.current_world_column = 1
-        self.current_map_block_list = list()
+        self.current_world_row = 2
+        self.current_world_column = 2
+
+        self.player = Player(5,5)
+
+        # Maintain a list of sprites for characters and background
+        # These lists are meant to change with every world map the player is in
+        self.list_of_characters = [self.player]
+        self.list_of_map_blocks = list() # map blocks for the current map only
+
+        # Maintain a sprite group that the game loop interacts with
+        self.all_sprites = LayeredUpdates()
         self.read_map_file_and_make_map(self.current_world_row, self.current_world_column)
+        self.all_sprites.add(self.list_of_characters, self.list_of_map_blocks)
+        self.all_sprites.move_to_front(self.player)
+
 
     def check_valid_world_position(self, x, y):
         # Checks if the tile is within the bounds of the map grid
@@ -47,7 +60,7 @@ class GameWorld:
         with open(file_path) as f:
             map_data = json.load(f)
             for map_tile in map_data['data']:
-                self.current_map_block_list.append(
+                self.list_of_map_blocks.append(
                     self.make_map_tile_at_location(
                         row=map_tile['map_row'],
                         col=map_tile['map_col'],
@@ -56,13 +69,35 @@ class GameWorld:
                     )
                 )
 
-    #TODO
     def update_current_world_position(self, current_wm_row, current_wm_column, new_wm_row, new_wm_column):
-        if not check_valid_position(new_wm_row, new_wm_column):
-            return
+        #TODO
+        pass
+    
+    def update_surrounds(self):
+        # loads the surrounding blocks into all characters on the map
+        for character in self.list_of_characters:
+            x, y = character.get_grid_coords()
+            above = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x][y-1])[0]
+            below = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x][y+1])[0]
+            left = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x-1][y])[0]
+            right = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x+1][y])[0]
+
+            character.get_surrounds(above, below, left, right)
+
+    def add_character(self, character):
+        self.list_of_characters.append(character)
         
-    def return_current_map(self):
-        if not self.current_map_block_list:
+    def return_map_dict(self):
+        if not self.list_of_map_blocks:
             print('Load a map file first!')
             return
-        return self.current_map_block_list
+        a = list()
+        for i in self.list_of_map_blocks:
+            b = {}
+            x, y = i.get_grid_coords()
+            b['row'] = x
+            b['col'] = y
+            b['collision'] = i.collision
+            b['type'] = i
+            a.append(b)
+        return a

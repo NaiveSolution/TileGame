@@ -7,6 +7,7 @@ class TileBlock(pg.sprite.Sprite):
         pg.sprite.Sprite.__init__(self)
         self.is_interactable = False
         self.collision = False
+        self.is_npc = False
         self.image = None
         self.rect = None
         self.grid_position_x = None
@@ -39,7 +40,8 @@ class TileBlock(pg.sprite.Sprite):
         
     def get_grid_coords(self):
         # Debugging purposes
-        print(f'Position ({self.__class__.__name__}): [{self.grid_position_x}][{self.grid_position_y}]')
+        #print(f'Position ({self.__class__.__name__}): [{self.grid_position_x}][{self.grid_position_y}]')
+        #print(f'Pixel : [{self.rect.centerx}][{self.rect.centery}]')
         return self.grid_position_x, self.grid_position_y
 
     def load_sound(self, file_name):
