@@ -1,9 +1,11 @@
 import settings
-from terrain_cls import NormalTerrain, ImpassableTerrain
-from tile_cls import TileBlock
 import json
 import os
+
+from terrain_cls import NormalTerrain, ImpassableTerrain
+from tile_cls import TileBlock
 from character_cls import Player
+
 from pygame.sprite import LayeredUpdates
 
 class GameWorld:
@@ -17,11 +19,11 @@ class GameWorld:
     '''
 
     def __init__(self):
-        # Initialise the starting position of the player at (1, 1)
-        self.current_world_row = 2
+        # Initialise the starting map of the player
+        self.current_world_row = 1
         self.current_world_column = 2
 
-        self.player = Player(5,5)
+        self.player = Player(1,1)
 
         # Maintain a list of sprites for characters and background
         # These lists are meant to change with every world map the player is in
@@ -77,10 +79,26 @@ class GameWorld:
         # loads the surrounding blocks into all characters on the map
         for character in self.list_of_characters:
             x, y = character.get_grid_coords()
-            above = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x][y-1])[0]
-            below = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x][y+1])[0]
-            left = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x-1][y])[0]
-            right = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x+1][y])[0]
+            if x in [0, settings.NUMBER_OF_TILES - 1]:
+                if x == 0:
+                    left = None
+                    right = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x+1][y])[0]
+                if x == settings.NUMBER_OF_TILES - 1:
+                    right = None
+                    left = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x-1][y])[0]
+            else:
+                left = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x-1][y])[0]
+                right = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x+1][y])[0]
+            if y in [0, settings.NUMBER_OF_TILES - 1]:
+                if y == 0:
+                    above = None
+                    below = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x][y+1])[0]
+                if y == settings.NUMBER_OF_TILES - 1:
+                    below = None
+                    above = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x][y-1])[0]
+            else:
+                above = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x][y-1])[0]
+                below = self.all_sprites.get_sprites_at(settings.GRID_LAYOUT[x][y+1])[0]
 
             character.get_surrounds(above, below, left, right)
 

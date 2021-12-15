@@ -2,165 +2,257 @@ import settings
 import json
 import pygame as pg
 import os
-import sys
 import json
 from terrain_cls import NormalTerrain, ImpassableTerrain
-# from consolemenu import *
-# from consolemenu.items import *
+import tkinter as tk
+from tkinter import ttk, filedialog
+from PIL import Image, ImageTk
+import threading
+import time
+from functools import partial
 
-current_world_map_row = 0
-current_world_map_column = 0
-terrain_block_file = None
-current_terrain_type = 0
-block_list = list()
 '''
-    This script creates an empty world json file.
+    This script creates an empty world map json file.
     It can be filled with your own data to make your own map. 
     It can also be used to view your creation in pygame
     The text file will be read by a GameWorld object in main.
 
     For example, given world size n = 3 and map size m = 2, the script will write this:
     (where n = settings.NUMBER_OF_MAPS and m = settings.NUMBER_OF_TILES)
-    {
-        'map_data': [
-            {
-                'world_row' : 0,
-                'world_col' : 0,
-                'data' :[
-                    {
-                        'map_row' : 0,
-                        'map_col' : 0,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                    {
-                        'map_row' : 0,
-                        'map_col' : 1,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                    {
-                        'map_row' : 1,
-                        'map_col' : 0,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                    {
-                        'map_row' : 1,
-                        'map_col' : 1,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                ]
-            },
-            {
-                'world_row' : 0,
-                'world_col' : 1,
-                'data' :[
-                    {
-                        'map_row' : 0,
-                        'map_col' : 0,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                    {
-                        'map_row' : 0,
-                        'map_col' : 1,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                    {
-                        'map_row' : 1,
-                        'map_col' : 0,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                    {
-                        'map_row' : 1,
-                        'map_col' : 1,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                ]
-            },
-            .
-            .
-            .
-            {
-                'world_row' : n,
-                'world_col' : n,
-                'data' :[
-                    {
-                        'map_row' : 0,
-                        'map_col' : 0,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                    {
-                        'map_row' : 0,
-                        'map_col' : 1,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                    {
-                        'map_row' : 1,
-                        'map_col' : 0,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                    {
-                        'map_row' : 1,
-                        'map_col' : 1,
-                        'filename': 'blank.png'
-                        'terrain_type' : 0
-                    },
-                ]
-            }
-    }
+
+    'world_row' : 0,
+    'world_col' : 0,
+    'data' :[
+        {
+            'map_row' : 0,
+            'map_col' : 0,
+            'filename': 'blank.png'
+            'terrain_type' : 0
+        },
+        {
+            'map_row' : 0,
+            'map_col' : 1,
+            'filename': 'blank.png'
+            'terrain_type' : 0
+        },
+        {
+            'map_row' : 1,
+            'map_col' : 0,
+            'filename': 'blank.png'
+            'terrain_type' : 0
+        },
+        {
+            'map_row' : 1,
+            'map_col' : 1,
+            'filename': 'blank.png'
+            'terrain_type' : 0
+        }]
 '''
 
-def check_valid_position(x, y, grid_size):
-    # Checks if the tile is within the bounds of the map grid
-    if x > grid_size - 1 or x < 0:
-        return False
-    if y > grid_size - 1 or y < 0:
-        return False
-    return True
+# This class controls all the data of the map
+class MapMaker:
+    def __init__(self) -> None:
+        # tkinter options
+        self.window_height = 600
+        self.window_width = 600
+        self.window_margin = 50
+        
+        # Setting the initial position of the map cursor
+        self.row, self.column = 0, 0
+        
+        # Setting the current map location in the world
+        self.world_row, self.world_column = 0, 0
 
-def set_row_col(grid_size):
-    row = input("Enter Row: ")
-    col = input("Enter Column: ")
-    while row.isalpha() or int(row) < 0 or int(row) > grid_size - 1:
-        row = input('Invalid row. Please enter a valid row number:')
-    while col.isalpha() or int(col) < 0 or int(col) > grid_size - 1:
-        col = input('Invalid column. Please enter a valid column number:')
-    return int(row), int(col)
+        # Initialising as an empty map
+        self.world_map_data = {}
+        self.block_list = list()
+        self.create_empty_map()
 
-def make_map_tile_at_location(row, col, file_name, terrain_type):
-    if terrain_type == 0:
-        terrain_block = NormalTerrain(row, col, file_name)
-    elif terrain_type == 1:
-        terrain_block = ImpassableTerrain(row, col, file_name)
-    else:
-        print('Not a terrain_type')
-        return
-    return terrain_block
+        # Setting the initial block attributes
+        self.actionable = False
+        self.terrain_block_file = 'terrain_grass_no-edge.png'
+        self.terrain_type = 0
 
-def display_current_map(data):
-    global block_list
-    global terrain_block_file
-    global current_terrain_type
-    x, y = None, None
-    pg.display.set_caption(f"Map position: [{current_world_map_row}][{current_world_map_column}]")
+    def toggle_terrain_type(self):
+        if self.terrain_type == 0:
+            self.terrain_type = 1
+            type = '<Impassable>'
+        elif self.terrain_type == 1:
+            self.terrain_type = 0
+            type = '<Normal>'
+        print(f'Set terrain type to {type}')
+
+    # The index is the position of the self.row and self.column block in the self.world_map_data['data'] list
+    # It should be set everytime the map cursor row and column are changed
+    def get_index(self):
+        return next((i for i, item in enumerate(self.world_map_data['data']) if item["map_row"] == self.row and item['map_col'] == self.column), None)
+
+    def check_valid_position(self, x, y, grid_size):
+        # Checks if the tile is within the bounds of the map grid
+        if x > grid_size - 1 or x < 0:
+            return False
+        if y > grid_size - 1 or y < 0:
+            return False
+        return True
+
+    def make_and_insert_block(self, row, col, file_name, action, terrain_type):
+        if terrain_type == 0:
+            terrain_block = NormalTerrain(row, col, file_name)
+            terrain_block.is_interactable = action
+        elif terrain_type == 1:
+            terrain_block = ImpassableTerrain(row, col, file_name)
+            terrain_block.is_interactable = action
+        else:
+            print('Not a terrain_type')
+            return
+        self.block_list.append(terrain_block)
+
+    # This function takes the json format of the map and populates the objects list of blocks
+    def set_block_list(self):
+        for d in self.world_map_data['data']:
+            self.make_and_insert_block(d['map_row'], d['map_col'], d['filename'], d['action'], d['terrain_type'])
+
+    def remove_block_at_location(self, x, y):
+        for block in self.block_list:
+            if block.grid_position_x == x and block.grid_position_y == y:
+                self.block_list.remove(block)
+   
+    def choose_terrain_popup(self):
+        win = tk.Toplevel()
+        win.wm_title("Choose Terrain")
+        print(f'\ncurrent terrain: {self.terrain_block_file}')
+        
+        # Create a dict of all the files in terrain/ to use in the main loop
+        file_dict = {}
+        for count, file in enumerate(sorted(os.listdir(settings.img_folder))):
+            file_dict.update({count : os.path.join(settings.img_folder, file)})
+        
+        button_identities = []
+
+        # callback function to set the terrain block file
+        def set_terrain(n):
+            bname = (button_identities[n])
+            self.terrain_block_file = file_dict[n]
+
+        n = 0
+        # loop through all the images in img_folder and create a list of buttons,
+        # calling set_terrain on the enumeration (n)
+        for k,v in file_dict.items():
+            img = Image.open(v)
+            img = img.resize((32, 32), Image.ANTIALIAS)
+            img = ImageTk.PhotoImage(img)
+            b = ttk.Button(win, text=f"{v.split('/')[-1]}", command=partial(set_terrain, n))
+            b.grid(sticky='nesw', row=k, column=0)
+            panel = tk.Label(win, image = img)
+            panel.image = img
+            panel.grid(row=k, column=2)
+            img = None
+            button_identities.append(b)
+            n += 1
+    
+    # This function writes the chosen map grid and fills them with blank.png's 
+    def create_empty_map(self):
+        self.world_map_data['world_row'] = self.world_row
+        self.world_map_data['world_col'] = self.world_column
+        self.world_map_data['data'] = []
+        for i in range(0, settings.NUMBER_OF_TILES):
+            for j in range(0, settings.NUMBER_OF_TILES):
+                map_data = {
+                    'map_row' : i,
+                    'map_col' : j,
+                    'filename' : 'blank.png',
+                    'action': False,
+                    'terrain_type' : 0}
+                self.world_map_data['data'].append(map_data)
+
+    def set_current_block(self):
+        n = self.get_index()
+        self.world_map_data['data'][n]['map_row'] = self.row
+        self.world_map_data['data'][n]['map_col'] = self.column
+        self.world_map_data['data'][n]['filename'] = self.terrain_block_file
+        self.world_map_data['data'][n]['action'] = self.actionable
+        self.world_map_data['data'][n]['terrain_type'] = self.terrain_type
+
+    def open_file(self):
+        filename = filedialog.askopenfilename(parent=root)
+        if not filename or not filename.endswith('.json'):
+            print('Please choose a map file in .json format.')
+            return
+        with open(filename) as f:
+            file_data = json.load(f)
+            try:
+                self.world_map_data['world_row'] = file_data['world_row']
+                self.world_map_data['world_col'] = file_data['world_col']
+                self.world_map_data['data'] = file_data['data']
+            except KeyError:
+                print('Not a valid map file!')
+                return
+        
+    def save_file(self):
+        f = filedialog.asksaveasfile(mode='w', defaultextension='.json')
+        if f is None:
+            return
+        f.write(json.dumps(self.world_map_data))
+        f.close()
+
+    def move_cursor(self, direction):
+        direction = direction.lower()
+        if direction == 'up':
+            if self.check_valid_position(self.row, self.column + 1, settings.NUMBER_OF_TILES):
+                self.column += 1
+            else:
+                print(f'Unable to move up to [{self.row+1}][{self.column}]')
+                return
+        if direction == 'down':
+            if self.check_valid_position(self.row, self.column -1, settings.NUMBER_OF_TILES):
+                self.column -= 1
+            else:
+                print(f'Unable to move down to [{self.row-1}][{self.column}]')
+                return
+        if direction == 'left':
+            if self.check_valid_position(self.row - 1, self.column, settings.NUMBER_OF_TILES):
+                self.row -= 1
+            else:
+                print(f'Unable to move left to [{self.row}][{self.column - 1}]')
+                return
+        if direction == 'right':
+            if self.check_valid_position(self.row + 1, self.column, settings.NUMBER_OF_TILES):
+                self.row += 1
+            else:
+                print(f'Unable to move right to [{self.row}][{self.column + 1}]')
+                return
+        self.set_current_block()
+        print(f'Moved to [{self.row}][{self.column}] and set')
+
+    def set_row_col(self, grid_size):
+        row = input("Enter Row: ")
+        col = input("Enter Column: ")
+        while row.isalpha() or int(row) < 0 or int(row) > grid_size - 1:
+            row = input('Invalid row. Please enter a valid row number:')
+        while col.isalpha() or int(col) < 0 or int(col) > grid_size - 1:
+            col = input('Invalid column. Please enter a valid column number:')
+        return int(row), int(col)
+
+map_maker = MapMaker()
+
+root = tk.Tk()
+root.title('Game maker')
+root.geometry(f'{map_maker.window_height}x{map_maker.window_width}+{map_maker.window_margin}+{map_maker.window_margin}')
+
+def start_pg():
+    t = threading.Thread(target=display_current_map)
+    t.start()
+
+def display_current_map():
+    pg.display.set_caption(f"Map")
     pg.init()
     pg.mixer.init()
     screen = pg.display.set_mode((settings.WIDTH, settings.HEIGHT))
 
-    for d in data:
-        terrain_block = make_map_tile_at_location(d['map_row'], d['map_col'], d['filename'], d['terrain_type'])
-        block_list.append(terrain_block)
-    background = pg.sprite.Group()
-    background.add(block_list)
+    map_maker.set_block_list()
+    
+    background = pg.sprite.LayeredUpdates()
+    background.add(map_maker.block_list)
     
 
     running = True
@@ -172,201 +264,56 @@ def display_current_map(data):
                 pos = pg.mouse.get_pos()
                 for sprite in background:
                     if sprite.rect.collidepoint(pos):
-                        x, y = sprite.get_grid_coords()
-                        running = False
+                        map_maker.row, map_maker.column = sprite.get_grid_coords()
+                        print(f'Setting coordinates: [{map_maker.row}][{map_maker.column}] and setting block')
+                        map_maker.set_current_block()
+                        break
+
+        time.sleep(0.5)
+
+        for i in background.sprites():
+             del i
+        map_maker.set_block_list()
+        background.add(map_maker.block_list)
         background.update()
         screen.fill(settings.WHITE)
         background.draw(screen)
         pg.display.flip()
     pg.quit()
-    return x, y
 
-def choose_terrain_block_file():
-    global terrain_block_file
-    print('\nCurrent terrain block file: ', terrain_block_file)
-    file_dict = {}
-    n = 0
-    # Create a dict of all the files in terrain/ to use in the main loop
-    for file in sorted(os.listdir(settings.img_folder)):
-        file_dict.update({n : file})
-        n += 1
-    for k,v in file_dict.items():
-        print(f'[{k}] {v}')
-    selection = input("Make your selection, or 'x' to go back: ")
-    # Dont mess up your selection, I cbf validating input atm
-    if selection == 'x' or selection == 'X':
-        return
-    terrain_block_file = file_dict[int(selection)]
+def make_buttons():
+    toggle_terrain_button = ttk.Button(root, text="Toggle Terrain Type", command=map_maker.toggle_terrain_type)
+    toggle_terrain_button.grid(column=1, row=1, sticky='nesw', padx=5, pady=5)
+    
+    choose_terrain_button = ttk.Button(root, text="Choose Terrain Sprite", command=map_maker.choose_terrain_popup)
+    choose_terrain_button.grid(column=1, row=2, sticky='nesw', padx=5, pady=5)
 
-def get_selection(map_row, map_col):
-    print('---- Move Commands ----')
-    print('[w] Move up\t\t[W] Move up and set block')
-    print('[s] Move down\t\t[S] Move down and set block')
-    print('[a] Move left\t\t[A] Move left and set block')
-    print('[d] Move right\t\t[D] Move right and set block')
-    print('[5] Move to position')
-    print('\n---- Set block attributes ----')
-    print('[6] Set terrain .png file')
-    print('[7] Set as normal terrain')
-    print('[8] Set as impassable terrain')
-    print('[9] Write current block values')
-    print('\n---- General commands ----')
-    print('[I/i] Inspect current map block')
-    print('[C/c] Display current world map in pygame')
-    print('[P/p] Save')
-    print('[B/b] Save and exit')
-    print('[X/x] Quit')
+    display_map_button = ttk.Button(root, text="Display map", command=start_pg)
+    display_map_button.grid(column=1, row=3, sticky='nesw', padx=5, pady=5)
 
-    print(f'Current map position: [{map_row}][{map_col}]\n')
-    selection = input('Command: ')
-    return selection
-
-# This function writes the chosen map grid and fills them with blank.png's 
-def create_empty_map(world_row, world_col):
-    d = {}
-    d['world_row'] = world_row
-    d['world_col'] = world_col
-    d['data'] = []
-    for i in range(0, settings.NUMBER_OF_TILES):
-        for j in range(0, settings.NUMBER_OF_TILES):
-            map_data = {
-                'map_row' : i,
-                'map_col' : j,
-                'filename' : 'blank.png',
-                'terrain_type' : 0
-            }
-            d['data'].append(map_data)
-    return d
-
-# The script keeps track of a dict that contains the map data.
-def write_map_block(data):
-    global current_terrain_type
-    global terrain_block_file
-
-    if terrain_block_file is None:
-        print('\nYou must set a .png file first')
-        choose_terrain_block_file()
-    data['filename'] = terrain_block_file
-    data['terrain_type'] = current_terrain_type
-    return data
+    # Testing only
+    move_up = ttk.Button(root, text="W", command=lambda: map_maker.move_cursor('up'))
+    move_up.grid(column=3, row=1, sticky='nesw', padx=5, pady=5)
+    move_down = ttk.Button(root, text="S", command=lambda: map_maker.move_cursor('down'))
+    move_down.grid(column=3, row=2, sticky='nesw', padx=5, pady=5)
+    move_left = ttk.Button(root, text="A", command=lambda: map_maker.move_cursor('left'))
+    move_left.grid(column=2, row=2, sticky='nesw', padx=5, pady=5)
+    move_right = ttk.Button(root, text="D", command=lambda: map_maker.move_cursor('right'))
+    move_right.grid(column=4, row=2, sticky='nesw', padx=5, pady=5)
 
 def main():
-    print('*************\nThis script is to be run only once to make a single world map!\n*************\n')
-    print('Please enter a world map row and column.')
-    world_map_row, world_map_column = set_row_col(settings.NUMBER_OF_MAPS)
+    # run tkinter
+    make_buttons()
+    menubar = tk.Menu(root)
+    filemenu = tk.Menu(menubar, tearoff=0)
+    filemenu.add_command(label="Open", command=map_maker.open_file)
+    filemenu.add_separator()
+    filemenu.add_command(label="Save as", command=map_maker.save_file)
+    filemenu.add_command(label="Exit", command=root.quit)
+    menubar.add_cascade(label="File", menu=filemenu)
 
-    # Check if the file already exists. If it does, either open it or save over it
-    save_file = f'map_{world_map_row}_{world_map_column}.json'
-    if os.path.isfile(os.path.join(settings.map_folder, save_file)):
-        overwrite = input(f'{save_file} already exists. Overwrite? [y/n]')
-        while overwrite not in ['y', 'Y', 'n', 'N']:
-            input(f'Invalid selection. Overwrite? [y/n]')
-        if overwrite in ['y', 'Y']:
-            world_map_data = create_empty_map(world_map_row, world_map_column)
-        else:
-            with open(os.path.join(settings.map_folder, save_file)) as f:
-                world_map_data = json.load(f)
-    else:
-        print(f'Generating empty world map data at: [{world_map_row}][{world_map_column}]\n')
-        world_map_data = create_empty_map(world_map_row, world_map_column)
-    
-    map_row, map_col = 0, 0
-    index = next((i for i, item in enumerate(world_map_data['data']) if item["map_row"] == map_row and item['map_col'] == map_col), None)
-
-    global current_terrain_type
-    selection = None
-
-    while selection != 'X' and selection != 'x':
-        selection = get_selection(map_row, map_col)
-        # Move commands
-        if selection in ['W','w']:
-            if check_valid_position(map_row, map_col + 1, settings.NUMBER_OF_TILES):
-                map_col += 1
-            else:
-                print(f'Unable to move up to [{map_row+1}][{map_col}]')
-            index = next((i for i, item in enumerate(world_map_data['data']) if item["map_row"] == map_row and item['map_col'] == map_col), None)
-            if selection == 'W':
-                world_map_data['data'][index] = write_map_block(world_map_data['data'][index])
-        if selection in ['S','s']:
-            if check_valid_position(map_row, map_col -1, settings.NUMBER_OF_TILES):
-                map_col -= 1
-            else:
-                print(f'Unable to move down to [{map_row-1}][{map_col}]')
-            index = next((i for i, item in enumerate(world_map_data['data']) if item["map_row"] == map_row and item['map_col'] == map_col), None)
-            if selection == 'S':
-                world_map_data['data'][index] = write_map_block(world_map_data['data'][index])
-        if selection in ['A','a']:
-            if check_valid_position(map_row - 1, map_col, settings.NUMBER_OF_TILES):
-                map_row -= 1
-            else:
-                print(f'Unable to move left to [{map_row}][{map_col - 1}]')
-            index = next((i for i, item in enumerate(world_map_data['data']) if item["map_row"] == map_row and item['map_col'] == map_col), None)
-            if selection == 'A':
-                world_map_data['data'][index] = write_map_block(world_map_data['data'][index])
-        if selection in ['D','d']:
-            if check_valid_position(map_row + 1, map_col, settings.NUMBER_OF_TILES):
-                map_row += 1
-            else:
-                print(f'Unable to move right to [{map_row}][{map_col + 1}]')
-            index = next((i for i, item in enumerate(world_map_data['data']) if item["map_row"] == map_row and item['map_col'] == map_col), None)
-            if selection == 'D':
-                world_map_data['data'][index] = write_map_block(world_map_data['data'][index])
-        if selection == '5':
-            map_row, map_col = set_row_col(settings.NUMBER_OF_TILES)
-
-        # Terrain commands
-        if selection == '6':
-            choose_terrain_block_file()
-        if selection == '7':
-            current_terrain_type = 0
-            print('\nTerrain type is now normal.')
-        if selection == '8':
-            current_terrain_type = 1
-            print('\nTerrain type is now impassable.')
-        
-        # Write commands
-        if selection == '9':
-            world_map_data['data'][index] = write_map_block(world_map_data['data'][index])
-            
-        # Should this exit when the user chooses it? or should it function as a kind of
-        # 'save as' function where the file is overwritten with the new data but doesnt
-        # exit the editor
-        if selection in ['B', 'b']:
-            with open(os.path.join(settings.map_folder, f'map_{world_map_row}_{world_map_column}.json'), 'w') as f:
-                json_object = json.dumps(world_map_data, indent=4)
-                f.write(json_object)
-            sys.exit(0)
-
-        # Misc and exit commands
-        if selection in ['C', 'c']:
-            x, y = display_current_map(world_map_data['data']) 
-            if x is not None or y is not None:
-                map_row, map_col = x, y
-                index = next((i for i, item in enumerate(world_map_data['data']) if item["map_row"] == map_row and item['map_col'] == map_col), None)
-        if selection in ['I', 'i']:
-            print(world_map_data['data'][index])
-        if selection in ['P', 'p']:
-            with open(os.path.join(settings.map_folder, save_file), 'w+') as f:
-                json.dump(world_map_data, f)
-        if selection in ['X', 'x']:
-            print('Exiting.')
-
+    root.config(menu=menubar)
+    root.mainloop()
 
 if __name__ == '__main__':
     main()
-
-'''
-    menu = ConsoleMenu()
-    set_row_col_menu_item = FunctionItem("Set World Map row and column", set_world_map_row_column)
-
-    build_map_selections = ["Move up", "Move down", "Move left", "Move right"]
-    selection_menu = SelectionMenu(build_map_selections)
-    build_map_menu_item = SubmenuItem("Build world map", selection_menu, menu)
-
-    menu.append_item(set_row_col_menu_item)
-    menu.append_item(build_map_menu_item)
-
-    # menu.append_item(submenu_item)
-    menu.show()
-
-'''
