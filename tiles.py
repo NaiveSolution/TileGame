@@ -33,15 +33,15 @@ class TileBlock(pg.sprite.Sprite):
         
     def create_at_position(self, x, y):
         if not self.check_valid_position(x, y):
-            raise Exception(f'Cannot make a Terrain Tileblock at: [{x}][{y}]')
+            raise Exception(f'Cannot make a Tileblock sprite at: [{x}][{y}]')
         self.grid_position_x = x
         self.grid_position_y = y
         self.rect.center = (settings.GRID_LAYOUT[self.grid_position_x][self.grid_position_y])
         
     def get_grid_coords(self):
         # Debugging purposes
-        #print(f'Position ({self.__class__.__name__}): [{self.grid_position_x}][{self.grid_position_y}]')
-        #print(f'Pixel : [{self.rect.centerx}][{self.rect.centery}]')
+        # print(f'Position ({self.__class__.__name__}): [{self.grid_position_x}][{self.grid_position_y}]')
+        # print(f'Pixel : [{self.rect.centerx}][{self.rect.centery}]')
         return self.grid_position_x, self.grid_position_y
 
     def load_sound(self, file_name):

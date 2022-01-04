@@ -1,7 +1,7 @@
 from os import truncate
-import tile_cls
+import tiles
     
-class NormalTerrain(tile_cls.TileBlock):
+class NormalTerrain(tiles.TileBlock):
     def __init__(self, x, y, file_name):
         super().__init__()
         self.collision = False
@@ -10,7 +10,7 @@ class NormalTerrain(tile_cls.TileBlock):
         self.create_at_position(x, y)
         
 
-class ImpassableTerrain(tile_cls.TileBlock):
+class ImpassableTerrain(tiles.TileBlock):
     def __init__(self, x, y, file_name):
         super().__init__()
         self.collision = True
